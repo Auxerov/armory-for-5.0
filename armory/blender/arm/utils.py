@@ -242,9 +242,42 @@ def get_last_commit():
     return commit
 
 
+class _DummyPrefs:
+    sdk_path = ""
+    ide_bin = ""
+    ffmpeg_path = ""
+    renderdoc_path = ""
+    code_editor = "default"
+    ui_scale = 1.0
+    khamake_threads = 4
+    khamake_threads_use_auto = False
+    compilation_server = True
+    save_on_build = False
+    debug_console_auto = False
+    debug_console_visible_sc = 192
+    debug_console_scale_in_sc = 219
+    debug_console_scale_out_sc = 221
+    viewport_controls = "qwerty"
+    legacy_shaders = False
+    relative_paths = False
+    android_sdk_root_path = ""
+    android_apk_copy_path = ""
+    android_apk_copy_open_directory = False
+    android_open_build_apk_directory = False
+    html5_copy_path = ""
+    link_web_server = "http://localhost/"
+
+    def __getattr__(self, name):
+        return False
+
 def get_arm_preferences() -> bpy.types.AddonPreferences:
     preferences = bpy.context.preferences
-    return preferences.addons["armory"].preferences
+    if "armory" in preferences.addons:
+        return preferences.addons["armory"].preferences
+    for addon in preferences.addons.values():
+        if hasattr(addon, "preferences") and type(addon.preferences).__name__ == "ArmoryAddonPreferences":
+            return addon.preferences
+    return _DummyPrefs()
 
 
 def get_ide_bin():
@@ -803,7 +836,7 @@ def check_blender_version(op: bpy.types.Operator):
     """Check whether the Blender version is supported by Armory,
     if not, report in UI.
     """
-    if bpy.app.version[:2] not in [(5, 2), (4, 5), (4, 2), (3, 6), (3, 3)]:
+    if bpy.app.version[:2] not in [(5, 2), (5, 0), (4, 5), (4, 2), (3, 6), (3, 3)]:
         op.report({'INFO'}, 'INFO: For Armory to work correctly use a Blender LTS version.')
 
 

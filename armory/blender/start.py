@@ -1,4 +1,11 @@
+import sys
 import time
+
+try:
+    import bgl
+except ImportError:
+    import bgl
+    sys.modules['bgl'] = bgl
 
 import arm
 import arm.log

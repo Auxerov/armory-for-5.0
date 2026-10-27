@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union
+from typing import Any, Union
 
 import bpy
 
@@ -150,7 +150,7 @@ if bpy.app.version > (3, 2, 0):
             return c.to_vec3((0.0, 0.0, 0.0))
 
 
-def parse_combhsv(node: bpy.types.ShaderNodeCombineHSV, out_socket: bpy.types.NodeSocket, state: ParserState) -> vec3str:
+def parse_combhsv(node: Any, out_socket: bpy.types.NodeSocket, state: ParserState) -> vec3str:
     state.curshader.add_function(c_functions.str_hue_sat)
     h = c.parse_value_input(node.inputs[0])
     s = c.parse_value_input(node.inputs[1])
@@ -158,7 +158,7 @@ def parse_combhsv(node: bpy.types.ShaderNodeCombineHSV, out_socket: bpy.types.No
     return f'hsv_to_rgb(vec3({h}, {s}, {v}))'
 
 
-def parse_combrgb(node: bpy.types.ShaderNodeCombineRGB, out_socket: bpy.types.NodeSocket, state: ParserState) -> vec3str:
+def parse_combrgb(node: Any, out_socket: bpy.types.NodeSocket, state: ParserState) -> vec3str:
     r = c.parse_value_input(node.inputs[0])
     g = c.parse_value_input(node.inputs[1])
     b = c.parse_value_input(node.inputs[2])
@@ -368,7 +368,7 @@ if bpy.app.version > (3, 2, 0):
             return '0.0'
 
 
-def parse_sephsv(node: bpy.types.ShaderNodeSeparateHSV, out_socket: bpy.types.NodeSocket, state: ParserState) -> floatstr:
+def parse_sephsv(node: Any, out_socket: bpy.types.NodeSocket, state: ParserState) -> floatstr:
     state.curshader.add_function(c_functions.str_hue_sat)
 
     hsv_var = c.node_name(node.name) + '_hsv' + state.get_parser_pass_suffix()
@@ -383,7 +383,7 @@ def parse_sephsv(node: bpy.types.ShaderNodeSeparateHSV, out_socket: bpy.types.No
         return f'{hsv_var}.z'
 
 
-def parse_seprgb(node: bpy.types.ShaderNodeSeparateRGB, out_socket: bpy.types.NodeSocket, state: ParserState) -> floatstr:
+def parse_seprgb(node: Any, out_socket: bpy.types.NodeSocket, state: ParserState) -> floatstr:
     col = c.parse_vector_input(node.inputs[0])
     if out_socket == node.outputs[0]:
         return '{0}.r'.format(col)

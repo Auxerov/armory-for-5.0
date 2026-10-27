@@ -2,14 +2,14 @@
 # https://github.com/armory3d/armory
 bl_info = {
     "name": "Armory",
-    "category": "Game Engine",
+    "category": "Render",
     "location": "Properties -> Render -> Armory Player",
-    "description": "3D Game Engine for Blender",
+    "description": "3D Game Engine for Blender (Blender 5.0+ Compatible)",
     "author": "Armory3D.org",
     "version": (2026, 2, 0),
-    "blender": (5, 2, 0),
+    "blender": (4, 2, 0),
     "doc_url": "https://github.com/armory3d/armory/wiki",
-    "tracker_url": "https://github.com/armory3d/armory/issues"
+    "tracker_url": "https://github.com/Auxerov/armory-for-5.0/issues"
 }
 
 from enum import IntEnum
@@ -62,29 +62,40 @@ def get_os():
 
 def detect_sdk_path():
     """Auto-detect the SDK path after Armory installation."""
-    # Do not overwrite the SDK path (this method gets
-    # called after each registration, not after
-    # installation only)
-    preferences = bpy.context.preferences
-    addon_prefs = preferences.addons["armory"].preferences
-    if addon_prefs.sdk_path != "":
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
+    if addon_prefs is None or addon_prefs.sdk_path != "":
         return
 
-    win = bpy.context.window_manager.windows[0]
-    area = win.screen.areas[0]
-    area_type = area.type
-    area.type = "INFO"
-    with bpy.context.temp_override(window=win, screen=win.screen, area=area):
-        bpy.ops.info.select_all(action='SELECT')
-        bpy.ops.info.report_copy()
-    area.type = area_type
-    clipboard = bpy.context.window_manager.clipboard
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate_paths = [
+        os.environ.get('ARMSDK', ''),
+        this_dir,
+        os.path.expanduser('~/armsdk'),
+        '/home/auxerov/armsdk',
+    ]
+    for p in candidate_paths:
+        if p and os.path.isdir(p) and os.path.exists(os.path.join(p, 'armory', 'blender', 'start.py')):
+            addon_prefs.sdk_path = p
+            return
 
-    # If armory was installed multiple times in this session,
-    # use the latest log entry.
-    match = re.findall(r"^Modules Installed .* from '(.*armory.py)' into", clipboard, re.MULTILINE)
-    if match:
-        addon_prefs.sdk_path = os.path.dirname(match[-1])
+    if not bpy.app.background and len(bpy.context.window_manager.windows) > 0:
+        try:
+            win = bpy.context.window_manager.windows[0]
+            area = win.screen.areas[0]
+            area_type = area.type
+            area.type = "INFO"
+            with bpy.context.temp_override(window=win, screen=win.screen, area=area):
+                bpy.ops.info.select_all(action='SELECT')
+                bpy.ops.info.report_copy()
+            area.type = area_type
+            clipboard = bpy.context.window_manager.clipboard
+            match = re.findall(r"^Modules Installed .* from '(.*armory.py)' into", clipboard, re.MULTILINE)
+            if match:
+                inst_dir = os.path.dirname(match[-1])
+                if os.path.exists(os.path.join(inst_dir, 'armory', 'blender', 'start.py')):
+                    addon_prefs.sdk_path = inst_dir
+        except Exception:
+            pass
 
 def get_link_web_server(self):
     return self.get('link_web_server', 'http://localhost/')
@@ -102,7 +113,7 @@ def set_link_web_server(self, value):
 
 
 class ArmoryAddonPreferences(AddonPreferences):
-    bl_idname = __name__
+    bl_idname = __package__ if __package__ else __name__
 
     def sdk_path_update(self, context):
         if self.skip_update:
@@ -311,7 +322,7 @@ class ArmoryAddonPreferences(AddonPreferences):
         layout.label(text="Welcome to Armory!")
 
         # Compare version Blender and Armory (major, minor)
-        if bpy.app.version[:2] not in [(4, 5), (4, 2), (3, 6), (3, 3)]:
+        if bpy.app.version[:2] not in [(5, 0), (4, 5), (4, 2), (3, 6), (3, 3)]:
             box = layout.box().column()
             box.label(text="Warning: For Armory to work correctly use a Blender LTS version.")
 
@@ -445,9 +456,17 @@ class ArmoryAddonPreferences(AddonPreferences):
                 col.prop(self, "use_armory_py_symlink")
 
     @staticmethod
-    def get_prefs() -> 'ArmoryAddonPreferences':
+    def get_prefs() -> Optional['ArmoryAddonPreferences']:
         preferences = bpy.context.preferences
-        return typing.cast(ArmoryAddonPreferences, preferences.addons["armory"].preferences)
+        pkg_name = __package__ if __package__ else __name__
+        if pkg_name in preferences.addons:
+            return typing.cast(ArmoryAddonPreferences, preferences.addons[pkg_name].preferences)
+        if "armory" in preferences.addons:
+            return typing.cast(ArmoryAddonPreferences, preferences.addons["armory"].preferences)
+        for addon in preferences.addons.values():
+            if hasattr(addon, "preferences") and isinstance(addon.preferences, ArmoryAddonPreferences):
+                return addon.preferences
+        return None
 
 
 def get_fp():
@@ -494,9 +513,10 @@ def get_sdk_path(context: bpy.context) -> str:
             return local_sdk
 
     sdk_source = SDKSource.PREFS
-    preferences = context.preferences
-    addon_prefs = preferences.addons["armory"].preferences
-    return addon_prefs.sdk_path
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
+    if addon_prefs is not None and addon_prefs.sdk_path != "":
+        return addon_prefs.sdk_path
+    return ""
 
 def apply_unix_permissions(sdk):
     """Apply permissions to executable files in Linux and macOS
@@ -515,13 +535,17 @@ def apply_unix_permissions(sdk):
             os.path.join(sdk, "Kha/Tools/linux_x64/haxe"),
             os.path.join(sdk, "Kha/Tools/linux_x64/lame"),
             os.path.join(sdk, "Kha/Tools/linux_x64/oggenc"),
-            # Kore tools x64
+            # Kore/Kinc tools x64
             os.path.join(sdk, "Kha/Kore/Tools/linux_x64/kmake"),
             os.path.join(sdk, "Kha/Kore/Tools/linux_x64/kraffiti"),
             os.path.join(sdk, "Kha/Kore/Tools/linux_x64/krafix"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/linux_x64/krafix"),
         ]
         for path in paths:
-            os.chmod(path, 0o777)
+            if os.path.exists(path):
+                os.chmod(path, 0o777)
 
     if get_os() == 'mac':
         paths=[
@@ -532,13 +556,17 @@ def apply_unix_permissions(sdk):
             os.path.join(sdk, "Kha/Tools/macos_x64/haxe"),
             os.path.join(sdk, "Kha/Tools/macos_x64/lame"),
             os.path.join(sdk, "Kha/Tools/macos_x64/oggenc"),
-            # Kore tools
+            # Kore/Kinc tools
             os.path.join(sdk, "Kha/Kore/Tools/macos_x64/kmake"),
             os.path.join(sdk, "Kha/Kore/Tools/macos_x64/kraffiti"),
             os.path.join(sdk, "Kha/Kore/Tools/macos_x64/krafix"),
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/kmake"),
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/kraffiti"),
+            os.path.join(sdk, "Kha/Kinc/Tools/macos/krafix"),
         ]
         for path in paths:
-            os.chmod(path, 0o777)
+            if os.path.exists(path):
+                os.chmod(path, 0o777)
 
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
@@ -745,8 +773,7 @@ def download_sdk(self: bpy.types.Operator, context):
     if not git_test(self):
         return {"CANCELLED"}
 
-    preferences = context.preferences
-    addon_prefs = preferences.addons["armory"].preferences
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
 
     def done(failed: bool):
         if failed:
@@ -810,26 +837,33 @@ def update_armory_py(sdk_path: str, force_relink=False):
     is already loaded as a Python module, this change lags one add-on
     reload behind.
     """
-    addon_prefs = ArmoryAddonPreferences.get_prefs()
-    arm_module_file = Path(sys.modules['armory'].__file__)
+    try:
+        if not sdk_path:
+            return
+        mod_file = __file__
+        if not mod_file:
+            return
+        arm_module_file = Path(mod_file).resolve()
+        src_file = (Path(sdk_path) / 'armory.py').resolve()
+        if not src_file.exists() or src_file == arm_module_file:
+            return
 
-    if addon_prefs.use_armory_py_symlink:
-        if not arm_module_file.is_symlink() or force_relink:
+        addon_prefs = ArmoryAddonPreferences.get_prefs()
+        if addon_prefs is None:
+            return
+
+        if addon_prefs.use_armory_py_symlink:
+            if not arm_module_file.is_symlink() or force_relink:
+                arm_module_file.unlink(missing_ok=True)
+                try:
+                    arm_module_file.symlink_to(src_file)
+                except OSError as err:
+                    shutil.copy(src_file, arm_module_file)
+        else:
             arm_module_file.unlink(missing_ok=True)
-            try:
-                arm_module_file.symlink_to(Path(sdk_path) / 'armory.py')
-            except OSError as err:
-                if hasattr(err, 'winerror'):
-                    if err.winerror == 1314:  # ERROR_PRIVILEGE_NOT_HELD
-                        # Manually copy the file to "simulate" symlink
-                        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
-                    else:
-                        raise err
-                else:
-                    raise err
-    else:
-        arm_module_file.unlink(missing_ok=True)
-        shutil.copy(Path(sdk_path) / 'armory.py', arm_module_file)
+            shutil.copy(src_file, arm_module_file)
+    except Exception as e:
+        print(f"Armory: update_armory_py: {e}")
 
 
 def start_armory(sdk_path: str):
@@ -850,8 +884,23 @@ def start_armory(sdk_path: str):
     apply_unix_permissions(sdk_path)
 
     scripts_path = os.path.join(armory_path, "blender")
-    sys.path.append(scripts_path)
+    if scripts_path not in sys.path:
+        sys.path.append(scripts_path)
     last_scripts_path = scripts_path
+
+    # Ensure bgl OpenGL shim is loaded into sys.modules for Blender 5.0
+    try:
+        import bgl
+    except ImportError:
+        pass
+    if 'bgl' not in sys.modules:
+        bgl_file = os.path.join(scripts_path, 'bgl.py')
+        if os.path.exists(bgl_file):
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("bgl", bgl_file)
+            bgl_mod = importlib.util.module_from_spec(spec)
+            sys.modules["bgl"] = bgl_mod
+            spec.loader.exec_module(bgl_mod)
 
     update_armory_py(sdk_path, force_relink=True)
 

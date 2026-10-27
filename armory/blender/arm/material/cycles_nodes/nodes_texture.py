@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 import os
-from typing import Union
+from typing import Any, Union
 
 import bpy
 
@@ -146,12 +146,11 @@ def parse_tex_image(node: bpy.types.ShaderNodeTexImage, out_socket: bpy.types.No
             state.curshader.write_textures += 1
             if node.arm_material_param and tex['file'] is not None:
                 tex_default_file = tex['file']
-            unpremultiply = node.image is not None and node.image.alpha_mode != 'CHANNEL_PACKED'
             if use_color_out:
                 to_linear = node.image is not None and node.image.colorspace_settings.name == 'sRGB'
-                res = f'{c.texture_store(node, tex, tex_name, to_linear, unpremultiply=unpremultiply, tex_link=tex_link, default_value=tex_default_file, is_arm_mat_param=is_arm_mat_param)}.rgb'
+                res = f'{c.texture_store(node, tex, tex_name, to_linear, tex_link=tex_link, default_value=tex_default_file, is_arm_mat_param=is_arm_mat_param)}.rgb'
             else:
-                res = f'{c.texture_store(node, tex, tex_name, unpremultiply=unpremultiply, tex_link=tex_link, default_value=tex_default_file, is_arm_mat_param=is_arm_mat_param)}.a'
+                res = f'{c.texture_store(node, tex, tex_name, tex_link=tex_link, default_value=tex_default_file, is_arm_mat_param=is_arm_mat_param)}.a'
             state.curshader.write_textures -= 1
             return res
 
@@ -314,7 +313,7 @@ def parse_tex_noise(node: bpy.types.ShaderNodeTexNoise, out_socket: bpy.types.No
     return res
 
 
-def parse_tex_pointdensity(node: bpy.types.ShaderNodeTexPointDensity, out_socket: bpy.types.NodeSocket, state: ParserState) -> Union[floatstr, vec3str]:
+def parse_tex_pointdensity(node: Any, out_socket: bpy.types.NodeSocket, state: ParserState) -> Union[floatstr, vec3str]:
     # Pass through
 
     # Color
