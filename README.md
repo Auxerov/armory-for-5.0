@@ -1,6 +1,6 @@
 # armory (Blender 5.0+ Compatible)
 
-[Download](https://armory3d.org/engine/download) &bullet; [Release Notes](https://github.com/armory3d/armory/releases) &bullet; [Manual](https://github.com/armory3d/armory/wiki) &bullet; [Forums](https://forums.armory3d.org/)
+[Download](https://github.com/Auxerov/armory-for-5.0/releases) &bullet; [Release Notes](https://github.com/Auxerov/armory-for-5.0/releases) &bullet; [Manual](https://github.com/armory3d/armory/wiki) &bullet; [Forums](https://forums.armory3d.org/)
 
 Armory is an open-source 3D game engine focused on portability, minimal footprint and performance. The renderer is fully scriptable with deferred and forward paths supported out of the box.
 
@@ -10,21 +10,43 @@ Armory as a Blender add-on provides a full Blender integration, turning it into 
 
 ## Blender 5.0+ Compatibility & Fixes
 
-This fork is patched and optimized for **Blender 5.0+**:
+This fork is patched and optimized specifically for **Blender 5.0+**:
 - **`bgl` compatibility shim**: Built-in OpenGL compatibility shim for Blender 4.0+ and 5.0+ where `bgl` was removed.
 - **Cycles Shader Nodes**: Updated shader converters and texture parsers for nodes deprecated or removed in Blender 5.0 (Combine/Separate HSV/RGB, PointDensity).
 - **Modern Blender API Fixes**: Fixed `blf.size()` signature for Blender 4.1+/5.0+, empty PropertyGroup syntax, and Cycles tile size configuration.
-- **Addon Loader & Auto-detection**: Includes root `__init__.py` and intelligent SDK path detection so it can be installed directly from GitHub ZIP or cloned as a folder without manual setup.
+- **Addon Loader & Auto-detection**: Includes root `__init__.py` and intelligent SDK path detection so it runs self-contained out of the box.
 
-### How to Install in Blender 5.0
+---
 
-1. **Download:**
-   - Click `<> Code` -> **Download ZIP** on GitHub (or clone this repository).
-2. **Install Add-on in Blender:**
-   - Open Blender 5.0, go to **Edit** -> **Preferences** -> **Add-ons**.
-   - Click the top right menu -> **Install from Disk...**
-   - Select the downloaded `.zip` file (or select `armory.py`).
-   - Search for **Armory** and enable the add-on.
-3. **SDK Path:**
-   - The add-on will automatically detect its SDK path. If needed, you can set the SDK path in the Armory preferences or via the `ARMSDK` environment variable.
+## Kurulum / How to Install in Blender 5.0
+
+### Yöntem 1: Hazır Eklenti Paketi ile Kurulum (Önerilen / Recommended)
+
+> [!IMPORTANT]
+> GitHub'ın standart yeşil `Code -> Download ZIP` butonu, klasör adını `armory-for-5.0-main` olarak adlandırdığı için Python sözdizimi kuralı gereği (tire `-` ve nokta `.` karakterleri nedeniyle) Blender `ModuleNotFoundError: No module named 'armory-for-5'` hatası verir. Ayrıca GitHub kaynak kod zip'leri `Kha` derleyicisini (git submodule) içermez.
+> Bu nedenle **her zaman Releases sayfasındaki hazır `armory.zip` paketini kullanın**.
+
+1. **İndirin:** [Releases](https://github.com/Auxerov/armory-for-5.0/releases) sayfasına gidin ve en güncel sürümün altındaki **`armory.zip`** dosyasını indirin.
+2. **Blender 5.0'da Kurun:**
+   - Blender 5.0'ı açın.
+   - **Edit** -> **Preferences** -> **Add-ons** sekmesine gidin.
+   - Sağ üst köşedeki menüden (aşağı ok / dişli simgesi) **Install from Disk...** seçeneğine tıklayın.
+   - İndirdiğiniz **`armory.zip`** dosyasını seçip **Install Add-on** deyin.
+3. **Etkinleştirin:**
+   - Arama kutusuna **Armory** yazın ve eklentinin yanındaki kutucuğu işaretleyin.
+   - Eklenti, SDK yolunu otomatik algılayıp motoru hemen başlatacaktır (Harici Git veya Haxe kurulumu gerektirmez).
+
+---
+
+### Yöntem 2: Git ile Kurulum (Geliştiriciler İçin / For Developers)
+
+Repoyu alt modülleriyle birlikte doğrudan klonlayıp kullanmak isterseniz:
+
+```bash
+# Alt modüllerle birlikte 'armory' adında bir klasöre klonlayın:
+git clone --recursive https://github.com/Auxerov/armory-for-5.0.git armory
+```
+
+Ardından `armory` klasörünü Blender eklenti dizininize taşıyın veya Blender içinden `armory/armory.py` dosyasını kurun.
+
 

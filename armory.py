@@ -71,7 +71,6 @@ def detect_sdk_path():
         os.environ.get('ARMSDK', ''),
         this_dir,
         os.path.expanduser('~/armsdk'),
-        '/home/auxerov/armsdk',
     ]
     for p in candidate_paths:
         if p and os.path.isdir(p) and os.path.exists(os.path.join(p, 'armory', 'blender', 'start.py')):
@@ -116,10 +115,11 @@ class ArmoryAddonPreferences(AddonPreferences):
     bl_idname = __package__ if __package__ else __name__
 
     def sdk_path_update(self, context):
-        if self.skip_update:
+        if self.skip_update or not self.sdk_path:
             return
         self.skip_update = True
-        self.sdk_path = bpy.path.reduce_dirs([bpy.path.abspath(self.sdk_path)])[0] + '/'
+        reduced = bpy.path.reduce_dirs([bpy.path.abspath(self.sdk_path)])[0]
+        self.sdk_path = os.path.normpath(reduced) + os.sep
         restart_armory(context)
 
     def ide_bin_update(self, context):
@@ -761,10 +761,12 @@ def download_sdk(self: bpy.types.Operator, context):
     global update_error_msg
     update_error_msg = ''
 
+    addon_prefs = ArmoryAddonPreferences.get_prefs()
     sdk_path = get_sdk_path(context)
     if sdk_path == "":
-        self.report({"ERROR"}, "Configure Armory SDK path first")
-        return {"CANCELLED"}
+        sdk_path = os.path.expanduser('~/armsdk')
+        if addon_prefs is not None:
+            addon_prefs.sdk_path = sdk_path
 
     self.report({'INFO'}, 'Downloading Armory SDK, check console for details.')
     print('Armory (current add-on version' + str(bl_info['version']) + '): Cloning SDK repository recursively')
@@ -800,7 +802,7 @@ def download_sdk(self: bpy.types.Operator, context):
         else:
             done(False)
 
-    git_clone(done_clone, sdk_path, 'armory3d/armsdk', '', recursive=True)
+    git_clone(done_clone, sdk_path, 'Auxerov/armory-for-5.0', '', recursive=True)
 
 
 class ArmAddonRestoreButton(bpy.types.Operator):
