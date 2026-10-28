@@ -233,15 +233,29 @@ class ArmoryExporter:
         if action is None:
             return []
 
-        if bpy.app.version < (5, 0, 0):
-            return action.fcurves
+        if hasattr(action, 'fcurves'):
+            return list(action.fcurves)
 
         fcurves = []
-        if action.slots:
-            for slot in action.slots:
-                channelbag = anim_utils.action_ensure_channelbag_for_slot(action, slot)
-                if channelbag:
-                    fcurves.extend(channelbag.fcurves)
+        if hasattr(action, 'layers'):
+            for layer in action.layers:
+                if hasattr(layer, 'strips'):
+                    for strip in layer.strips:
+                        if hasattr(strip, 'channelbags'):
+                            for cb in strip.channelbags:
+                                if hasattr(cb, 'fcurves'):
+                                    fcurves.extend(cb.fcurves)
+
+        if not fcurves and hasattr(action, 'slots'):
+            try:
+                from bpy_extras import anim_utils
+                for slot in action.slots:
+                    cb = anim_utils.action_get_channelbag_for_slot(action, slot)
+                    if cb and hasattr(cb, 'fcurves'):
+                        fcurves.extend(cb.fcurves)
+            except Exception:
+                pass
+
         return fcurves
 
     @staticmethod
