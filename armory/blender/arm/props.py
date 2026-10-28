@@ -626,6 +626,7 @@ def update_armory_world():
         wrd.arm_version = arm_version
         wrd.arm_commit = arm_commit
         arm.make.clean()
+        wrd.arm_recompile = True
 
 def register():
     init_properties()

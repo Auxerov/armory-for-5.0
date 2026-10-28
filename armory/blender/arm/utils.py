@@ -229,7 +229,24 @@ def get_sdk_path():
     if use_local_sdk:
         return os.path.normpath(get_fp() + '/armsdk/')
     else:
-        return os.path.normpath(addon_prefs.sdk_path)
+        sdk_path = getattr(addon_prefs, 'sdk_path', '')
+        if not sdk_path:
+            try:
+                import armory
+                sdk_path = armory.get_sdk_path(bpy.context)
+            except Exception:
+                pass
+        if not sdk_path:
+            # Fall back to self-location (4 levels up from this file: armsdk/armory/blender/arm/utils.py)
+            this_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            if os.path.exists(os.path.join(this_dir, 'armory', 'blender', 'start.py')):
+                sdk_path = this_dir
+        if not sdk_path:
+            for cand in [os.environ.get('ARMSDK', ''), os.path.expanduser('~/armsdk')]:
+                if cand and os.path.isdir(cand) and os.path.exists(os.path.join(cand, 'armory')):
+                    sdk_path = cand
+                    break
+        return os.path.normpath(sdk_path) if sdk_path else "."
 
 def get_last_commit():
     p = get_sdk_path() + 'armory/.git/refs/heads/main'

@@ -180,6 +180,8 @@ def create_world_shaders(world: bpy.types.World):
     shader_data_path = os.path.join(arm.utils.get_fp_build(), 'compiled', 'Shaders', shader_data_file)
     assets.add_shader_data(shader_data_path)
 
+    assets.add_shader(os.path.join(arm.utils.get_fp_build(), 'compiled', 'Shaders', pass_name + '.vert.glsl'))
+    assets.add_shader(os.path.join(arm.utils.get_fp_build(), 'compiled', 'Shaders', pass_name + '.frag.glsl'))
     assets.add_shader_pass(pass_name)
     assets.shader_passes_assets[pass_name] = shader_context.data
     shader_datas.append({'contexts': [shader_context.data], 'name': pass_name})
