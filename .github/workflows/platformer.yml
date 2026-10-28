@@ -1,0 +1,79 @@
+name: platformer
+
+on:
+  push:
+    paths:
+      - platformer/**
+      - .github/workflows/platformer.yml
+
+jobs:
+  html5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: html5
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+      - name: Deploy gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4.4.0
+        with:
+          branch: gh-pages
+          folder: ${{ github.workflow }}/build_${{ github.workflow }}/html5
+          target-folder: ${{ github.workflow }}
+  krom-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: krom-linux
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: linux-hl
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: android-hl
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: windows-hl
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+  macos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: macos-hl
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+  ios:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        uses: armory3d/armory_gh_actions@v0.1.15
+        with:
+          publish: ios-hl
+          blend: ${{ github.workflow }}/${{ github.workflow }}.blend
+ 

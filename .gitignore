@@ -1,0 +1,7 @@
+*/build*
+*/*.blend?
+*/Sources/Main.hx
+*/Sources/arm/node/*
+*/khafile.js
+config.arm
+_themes.json
